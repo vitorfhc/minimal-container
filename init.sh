@@ -13,10 +13,10 @@ usage() {
     echo $0 [options]
     echo
     echo Options:
-    echo -h show the usage for $0
-    echo -c \<arg\> runs a custom command inside the namespace
-    echo -n creates the network namespace
-    echo -v activates the verbose mode
+    echo "-h show the usage for $0"
+    echo "-c \<arg\> runs a custom command inside the namespace"
+    echo "-n creates the network namespace"
+    echo "-v activates the verbose mode"
 }
 
 # Constants and global variables
