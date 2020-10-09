@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/wait.h>
+#include <sys/mount.h>
 #include <errno.h>
 
 const int UNSHARE_FLAGS = CLONE_NEWUSER | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWUTS | CLONE_FILES;
@@ -21,22 +22,21 @@ void unshare_namespaces() {
     }
 }
 
-void exec_program(char *args[]) {
+int make_fork() {
     int ret;
     pid_t pid;
     pid = fork();
-    switch(pid) {
-        case -1: // error
-        exit_with_error("fork");
-        break;
-        case 0: // child
-        ret = execvp("/bin/bash", args);
-        if(ret == -1) exit_with_error("execvp");
-        break;
-        default: // parent
-        if(wait(NULL) == -1) exit_with_error("wait");
-        break;
-    }
+    if(pid == -1) exit_with_error("fork");
+    return pid;
+}
+
+void exec_program(const char cmd[], char **args) {
+    if(execvp(cmd, args) == -1) exit_with_error("exec");
+}
+
+void mount_proc() {
+    if(mount("none", "/proc", "proc", 0, NULL))
+        exit_with_error("mount");
 }
 
 int main(int argc, char *argv[]) {
@@ -44,11 +44,23 @@ int main(int argc, char *argv[]) {
         Flow:
         1. Unshare the namespaces
         2. Fork the process
-        3. Exec the program
+        3. Mount a new procfs
+        4. Exec the program
     */
 
+    pid_t pid, wait_pid;
+
     unshare_namespaces();
-    exec_program(argv);
+    pid = make_fork();
+    if(pid != 0) { // parent
+        wait_pid = wait(NULL);
+        if(wait_pid == -1) exit_with_error("wait");
+        return 0;
+    }
+
+    // from here on only child is running
+    mount_proc();
+    exec_program("bash", argv);
 
     return 0;
 }
