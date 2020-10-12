@@ -39,13 +39,19 @@ void mount_proc() {
         exit_with_error("mount");
 }
 
+void change_root() {
+    if(chroot("./rootfs/debian") == -1) exit_with_error("chroot");
+    if(chdir("/") == -1) exit_with_error("chdir");
+}
+
 int main(int argc, char *argv[]) {
     /*
         Flow:
-        1. Unshare the namespaces
-        2. Fork the process
-        3. Mount a new procfs
-        4. Exec the program
+        1. Unshare the namespaces (unshare)
+        2. Fork the process (fork)
+        3. Change the root (chroot)
+        4. Mount a new procfs (mount)
+        5. Exec the program (execvp)
     */
 
     pid_t pid, wait_pid;
@@ -54,13 +60,16 @@ int main(int argc, char *argv[]) {
     pid = make_fork();
     if(pid != 0) { // parent
         wait_pid = wait(NULL);
-        if(wait_pid == -1) exit_with_error("wait");
+        if(wait_pid == -1)
+            exit_with_error("wait");
         return 0;
     }
 
     // from here on only child is running
+    change_root();
     mount_proc();
     exec_program("bash", argv);
+    // end of child's execution
 
     return 0;
 }
