@@ -40,7 +40,7 @@ void mount_proc() {
 }
 
 void change_root() {
-    if(chroot("./rootfs/debian") == -1) exit_with_error("chroot");
+    if(chroot("rootfs") == -1) exit_with_error("chroot");
     if(chdir("/") == -1) exit_with_error("chdir");
 }
 
